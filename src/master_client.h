@@ -47,7 +47,7 @@ int mymkfifo(const char *pathname, mode_t mode);
 key_t getKey(const char *pathname, int proj_id);
 
 int semCreator(key_t key);
-int semGet(key_t key, int nsems, int semflg);
+int semGet(key_t key);
 
 void semCtl(int semid, int semnum, int cmd);
 void semSetVal(int semid, int val);
