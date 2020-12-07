@@ -6,6 +6,9 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "myassert.h"
 
@@ -21,9 +24,6 @@
 /************************************************************************
  * Usage et analyse des arguments passés en ligne de commande
  ************************************************************************/
-static struct sembuf up = {0,1,0};
-static struct sembuf down ={0,-1,0};
-static struct sembuf nul ={0,0,0};
 static void usage(const char *exeName, const char *message)
 {
     fprintf(stderr, "usage : %s <ordre> [<number>]\n", exeName);
@@ -91,7 +91,8 @@ int main(int argc, char * argv[])
     int order = parseArgs(argc, argv, &number);
     printf("%d\n", order); // pour éviter le warning
 	
-	int semMasterClient = semGet(); // recupere le semaphore
+    int key = getKey("master_client.h", PROJ_ID);// Créé la clé
+	int semMasterClient = semGet(key); // recupere le semaphore
 	
 	int tcm = open("tubeClientMaster",O_WRONLY); //ouverture en mode écriture
     int tmc = open("tubeMasterClient",O_RDONLY); //ouverture en mode lecture
@@ -100,7 +101,7 @@ int main(int argc, char * argv[])
     if(order == ORDER_COMPUTE_PRIME){
 		write(tcm,&order,sizeof(int));
 		write(tcm,&number,sizeof(int));
-		semOperation(semMasterClient,up,1); // Donne l'accès au master
+		prendre(semMasterClient); // Donne l'accès au master
 		sleep(1);
 	}
 	else if(order == ORDER_COMPUTE_PRIME_LOCAL){
@@ -108,10 +109,10 @@ int main(int argc, char * argv[])
 	}
 	else{
 		write(tcm,&order,sizeof(int));		
-		semOperation(semMasterClient,up,1); // Donne l'accès au master
+		prendre(semMasterClient); // Donne l'accès au master
 
 	}
-	semOperation(semMasterClient,down,1);
+	vendre(semMasterClient);
 	int valeur;
 	read(tmc,&valeur,sizeof(int));
 	
