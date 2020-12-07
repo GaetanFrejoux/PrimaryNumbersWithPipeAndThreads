@@ -1,6 +1,7 @@
 #ifndef CLIENT_CRIBLE
 #define CLIENT_CRIBLE
 
+
 // On peut mettre ici des éléments propres au couple master/client :
 //    - des constantes pour rendre plus lisible les comunications
 //    - des fonctions communes (création tubes, écriture dans un tube,
@@ -18,4 +19,26 @@
 // pour masquer l'implémentation
 
 
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+
+// identifiant pour le deuxième paramètre de ftok
+#define PROJ_ID 1
+
+
+
+
+
+
+
+key_t getKey();
+int semCreator();
+int semGet();
+void semSetVal(int id,int val);
+void semOperation(int id , struct sembuf op , int time);
 #endif

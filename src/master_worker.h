@@ -4,6 +4,8 @@
 // On peut mettre ici des éléments propres au couple master/worker :
 //    - des constantes pour rendre plus lisible les comunications
 //    - des fonctions communes (écriture dans un tube, ...)
-
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
 
 #endif

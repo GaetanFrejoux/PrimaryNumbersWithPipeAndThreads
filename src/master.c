@@ -12,22 +12,23 @@
 #include "master_worker.h"
 
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-
 /************************************************************************
  * Données persistantes d'un master
  ************************************************************************/
+static struct sembuf up = {0,1,0};
+static struct sembuf down ={0,-1,0};
+static struct sembuf nul ={0,0,0};
 
 // on peut ici définir une structure stockant tout ce dont le master
 // a besoin
-typedef struct{
+struct mS{
 	int highestPrime;
 	int highestAskedNumber;
 	int howManyCalculatedPrime;
-} *masterStats;
+	int idSemMasterClient;
+};
+
+typedef struct mS* masterStats;
 
 
 /************************************************************************
@@ -51,9 +52,9 @@ void loop(masterStats m)
 	int tcm = open("tubeClientMaster",O_RDONLY); //ouverture en mode lecture
     int tmc = open("tubeMasterClient",O_WRONLY); //ouverture en mode écriture
     int valeur;
-    while(true){
-		if(read(tcm,&valeur,sizeof(int))==1)
-		{
+    while(1){
+			semOperation((m->idSemMasterClient),down,1);
+			read(tcm,&valeur,sizeof(int));
 			if(valeur == ORDER_STOP)
 			{
 				//TODO
@@ -62,19 +63,44 @@ void loop(masterStats m)
 			if(valeur == ORDER_COMPUTE_PRIME)
 			{
 				//TODO
+				int v;
+				if(read(tcm,&v,sizeof(int))==1){
+					if(v>(m->highestAskedNumber)){
+						m->highestAskedNumber = v;
+					}
+				}
+				else {
+					//ERREUR
+				}
 			}
 			
 			if(valeur == ORDER_HOW_MANY_PRIME)
 			{
+				write(tmc,&(m->howManyCalculatedPrime), sizeof(int));
 				//TODO
+				//redonner l'accès au client
+				semOperation((m->idSemMasterClient),up,1);
+				sleep(1);
+
 			}
 			
 			if(valeur == ORDER_HIGHEST_PRIME)
 			{
+				
+				int highestPrime = m->highestPrime;
+
+				write(tmc,&highestPrime, sizeof(int));
 				//TODO
+				//redonner l'accès au client
 			}
+			break;
 		}
+		close(tcm);
+		close(tmc);
 	}
+	
+	
+	
     // boucle infinie :
     // - ouverture des tubes (cf. rq client.c)
     // - attente d'un ordre du client (via le tube nommé)
@@ -100,7 +126,6 @@ void loop(masterStats m)
     //
     // il est important d'ouvrir et fermer les tubes nommés à chaque itération
     // voyez-vous pourquoi ?
-}
 
 
 /************************************************************************
@@ -113,30 +138,34 @@ int main(int argc, char * argv[])
         usage(argv[0], NULL);
 
     // - création des sémaphores
-    
-    
+    int semMasterClient = semCreator();
+    semSetVal(semMasterClient,0); // Pour que le master puisse attendre le l'input du client
     // - création des tubes nommés
     mkfifo("tubeClientMaster",0600); //tube client vers master
     mkfifo("tubeMasterClient",0600); //tube master vers client
     
     
     // - création du premier worker
-    int son = fork();
+    /*int son = fork();
     if(son == 0){
 		execv("worker",NULL);
 	}
+	*/
 	
-	
-	masterStats ms;
+	masterStats ms = malloc(sizeof(struct mS));
 	ms->highestPrime = 2;
 	ms->highestAskedNumber = 1; 
 	ms->howManyCalculatedPrime = 0; //ou 1 ?
+	ms->idSemMasterClient = semMasterClient;
+	
+	
     // boucle infinie
-    
     loop(ms);
 
     // destruction des tubes nommés, des sémaphores, ...
-
+	unlink("tubeClientMaster");
+	unlink("tubeMasterClient");
+	semctl(semMasterClient,1,IPC_RMID);
     return EXIT_SUCCESS;
 }
 

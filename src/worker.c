@@ -16,7 +16,9 @@
 
 // on peut ici définir une structure stockant tout ce dont le worker
 // a besoin : le nombre premier dont il a la charge, ...
-
+typedef struct{
+	int primeNumber;
+} *workerStats;
 
 /************************************************************************
  * Usage et analyse des arguments passés en ligne de commande
@@ -47,6 +49,9 @@ static void parseArgs(int argc, char * argv[] /*, structure à remplir*/)
 
 void loop(/* paramètres */)
 {
+	while(1){
+		
+	}
     // boucle infinie :
     //    attendre l'arrivée d'un nombre à tester
     //    si ordre d'arrêt

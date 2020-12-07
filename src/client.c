@@ -21,7 +21,9 @@
 /************************************************************************
  * Usage et analyse des arguments passés en ligne de commande
  ************************************************************************/
-
+static struct sembuf up = {0,1,0};
+static struct sembuf down ={0,-1,0};
+static struct sembuf nul ={0,0,0};
 static void usage(const char *exeName, const char *message)
 {
     fprintf(stderr, "usage : %s <ordre> [<number>]\n", exeName);
@@ -83,10 +85,37 @@ static int parseArgs(int argc, char * argv[], int *number)
 
 int main(int argc, char * argv[])
 {
+	
+	
     int number = 0;
     int order = parseArgs(argc, argv, &number);
     printf("%d\n", order); // pour éviter le warning
+	
+	int semMasterClient = semGet(); // recupere le semaphore
+	
+	int tcm = open("tubeClientMaster",O_WRONLY); //ouverture en mode écriture
+    int tmc = open("tubeMasterClient",O_RDONLY); //ouverture en mode lecture
+    
+    
+    if(order == ORDER_COMPUTE_PRIME){
+		write(tcm,&order,sizeof(int));
+		write(tcm,&number,sizeof(int));
+		semOperation(semMasterClient,up,1); // Donne l'accès au master
+		sleep(1);
+	}
+	else if(order == ORDER_COMPUTE_PRIME_LOCAL){
+		//TODO 
+	}
+	else{
+		write(tcm,&order,sizeof(int));		
+		semOperation(semMasterClient,up,1); // Donne l'accès au master
 
+	}
+	semOperation(semMasterClient,down,1);
+	int valeur;
+	read(tmc,&valeur,sizeof(int));
+	
+	printf("resultat : %d",valeur);
     // order peut valoir 5 valeurs (cf. master_client.h) :
     //      - ORDER_COMPUTE_PRIME_LOCAL
     //      - ORDER_STOP
