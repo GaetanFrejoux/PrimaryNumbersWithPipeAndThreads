@@ -6,6 +6,11 @@
 //    - des fonctions communes (création tubes, écriture dans un tube,
 //      manipulation de sémaphores, ...)
 
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
+#include <pthread.h>
 
 /*** === CONSTANTES === ***/
 
