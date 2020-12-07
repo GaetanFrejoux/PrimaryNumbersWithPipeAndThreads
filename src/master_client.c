@@ -59,7 +59,7 @@ int mymkfifo(const char *pathname, mode_t mode)
 key_t getKey(const char *pathname, int proj_id)
 {
 	int key = myftok(pathname, proj_id);
-	myassert(key > , "ERROR : Issue with the creation of the key");
+	myassert(key > -1, "ERROR : Issue with the creation of the key");
 	
 	return key;
 }
@@ -135,7 +135,7 @@ void attendre(int semid)
 /*Create the thread*/
 int mycreate(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg)
 {
-	int ret = pthread_create(thread, attr, start_routine (void *), arg);
+	int ret = pthread_create(thread, attr, start_routine, arg);
 	myassert(ret > -1, "ERROR : Thread is not created");
 	
 	return ret;
