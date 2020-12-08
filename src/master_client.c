@@ -17,9 +17,9 @@
 // === TUBES === //
 
 /*Open a file*/
-int myopen(const char *pathname, int flags, mode_t mode)
+int myopen(const char *pathname, int flags)
 {
-	int ret = open(pathname, flags, mode);
+	int ret = open(pathname, flags);
 	myassert(ret > -1, "ERREUR : Pas d'ouverture du fichier");
 	
 	return ret;
