@@ -7,6 +7,9 @@
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
+
+#include "utils.h"
+
 struct wS{
 	int primeNumber; // sa valeur premiere
 	int prevWorker; // le tube vers le  worker precedant (read)
