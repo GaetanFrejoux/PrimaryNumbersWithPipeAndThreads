@@ -49,8 +49,8 @@ static void usage(const char *exeName, const char *message)
  ************************************************************************/
 void loop(masterStats m)
 {
-	int tcm = open("tubeClientMaster",O_RDONLY); //ouverture en mode lecture
-    int tmc = open("tubeMasterClient",O_WRONLY); //ouverture en mode écriture
+	int tcm = myopen("tubeClientMaster",0666); //ouverture en mode lecture
+    int tmc = myopen("tubeMasterClient",0666); //ouverture en mode écriture
     int valeur;
     while(1){
 			semOperation((m->idSemMasterClient),down,1);
@@ -138,11 +138,12 @@ int main(int argc, char * argv[])
         usage(argv[0], NULL);
 
     // - création des sémaphores
-    int semMasterClient = semCreator();
+	int key = getKey("master_client.h", PROJ_ID);
+    int semMasterClient = semCreator(key);
     semSetVal(semMasterClient,0); // Pour que le master puisse attendre le l'input du client
     // - création des tubes nommés
-    mkfifo("tubeClientMaster",0600); //tube client vers master
-    mkfifo("tubeMasterClient",0600); //tube master vers client
+    mymkfifo("tubeClientMaster",0600); //tube client vers master
+    mymkfifo("tubeMasterClient",0600); //tube master vers client
     
     
     // - création du premier worker
@@ -165,7 +166,7 @@ int main(int argc, char * argv[])
     // destruction des tubes nommés, des sémaphores, ...
 	unlink("tubeClientMaster");
 	unlink("tubeMasterClient");
-	semctl(semMasterClient,1,IPC_RMID);
+	semDestruct(semMasterClient);
     return EXIT_SUCCESS;
 }
 
