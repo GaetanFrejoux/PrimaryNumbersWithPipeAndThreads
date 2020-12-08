@@ -6,9 +6,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
+
 
 #include "myassert.h"
 
@@ -101,22 +99,23 @@ int main(int argc, char * argv[])
     if(order == ORDER_COMPUTE_PRIME){
 		write(tcm,&order,sizeof(int));
 		write(tcm,&number,sizeof(int));
+		
 		vendre(semMasterClient); // Donne l'accès au master
 	}
 	else if(order == ORDER_COMPUTE_PRIME_LOCAL){
 		//TODO 
 	}
 	else{
-		write(tcm,&order,sizeof(int));		
+		write(tcm,&order,sizeof(int));	
 		vendre(semMasterClient); // Donne l'accès au master
 
 	}
-	sleep(1); // Permet d'être sur que ce n'est pas le client qui reprend sur le sem.
+	 // Permet d'être sur que ce n'est pas le client qui reprend sur le sem.
 	prendre(semMasterClient);
 	int valeur;
 	read(tmc,&valeur,sizeof(int));
 	
-	printf("resultat : %d",valeur);
+	printf("resultat : %d\n",valeur);
     // order peut valoir 5 valeurs (cf. master_client.h) :
     //      - ORDER_COMPUTE_PRIME_LOCAL
     //      - ORDER_STOP

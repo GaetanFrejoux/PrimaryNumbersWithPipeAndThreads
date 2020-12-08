@@ -15,17 +15,22 @@
 /************************************************************************
  * Données persistantes d'un master
  ************************************************************************/
-static struct sembuf up = {0,1,0};
-static struct sembuf down ={0,-1,0};
-static struct sembuf nul ={0,0,0};
-
 // on peut ici définir une structure stockant tout ce dont le master
 // a besoin
 struct mS{
+	
+	//Stats
 	int highestPrime;
 	int highestAskedNumber;
 	int howManyCalculatedPrime;
+	
+	//Sem
 	int idSemMasterClient;
+	int idSemMasterWorker;
+
+	//Pipe
+	int pipeMasterWorker;
+	int pipeWorkerMaster;
 };
 
 typedef struct mS* masterStats;
@@ -49,55 +54,65 @@ static void usage(const char *exeName, const char *message)
  ************************************************************************/
 void loop(masterStats m)
 {
-	int tcm = myopen("tubeClientMaster",0666); //ouverture en mode lecture
-    int tmc = myopen("tubeMasterClient",0666); //ouverture en mode écriture
+	int tcm = myopen("tubeClientMaster",O_RDONLY); //ouverture en mode lecture
+    int tmc = myopen("tubeMasterClient",O_WRONLY); //ouverture en mode écriture
     int valeur;
-    while(1){
-			prendre((m->idSemMasterClient));
-			read(tcm,&valeur,sizeof(int));
-			if(valeur == ORDER_STOP)
-			{
-				//TODO
-			}
-			
-			if(valeur == ORDER_COMPUTE_PRIME)
-			{
-				//TODO
-				int v;
-				if(read(tcm,&v,sizeof(int))==1){
-					if(v>(m->highestAskedNumber)){
-						m->highestAskedNumber = v;
-					}
-				}
-				else {
-					//ERREUR
-				}
-			}
-			
-			if(valeur == ORDER_HOW_MANY_PRIME)
-			{
-				write(tmc,&(m->howManyCalculatedPrime), sizeof(int));
-				//TODO
-				//redonner l'accès au client
-                vendre((m->idSemMasterClient));
-				sleep(1);
-
-			}
-			
-			if(valeur == ORDER_HIGHEST_PRIME)
-			{
-				
-				int highestPrime = m->highestPrime;
-
-				write(tmc,&highestPrime, sizeof(int));
-				//TODO
-				//redonner l'accès au client
-			}
-			break;
+    //while(1){
+		
+		prendre((m->idSemMasterClient));
+		read(tcm,&valeur,sizeof(int));
+		if(valeur == ORDER_STOP)
+		{
+			//TODO
 		}
-		close(tcm);
-		close(tmc);
-	}
+		
+		if(valeur == ORDER_COMPUTE_PRIME)
+		{
+			//TODO
+			int v;
+			read(tcm,&v,sizeof(int));
+			if(v>(m->highestAskedNumber)){
+				m->highestAskedNumber = v;
+			}
+			write((m->pipeMasterWorker),&v,sizeof(int));
+			
+			//Temporaire vend pour le worker
+			struct sembuf up ={0,1,0};
+			struct sembuf down ={0,-1,0};
+
+			semop((m->idSemMasterWorker), &up, 1);
+			int ans;
+			sleep(1);
+			semop((m->idSemMasterWorker), &down, 1);
+
+			read(m->pipeWorkerMaster,&ans,sizeof(int));
+			write(tmc,&ans,sizeof(int));
+		}
+		
+		if(valeur == ORDER_HOW_MANY_PRIME)
+		{
+			write(tmc,&(m->howManyCalculatedPrime), sizeof(int));
+			//TODO
+			//redonner l'accès au client
+
+		}
+		
+		if(valeur == ORDER_HIGHEST_PRIME)
+		{
+			
+			int highestPrime = m->highestPrime;
+
+			write(tmc,&highestPrime, sizeof(int));
+			//TODO
+			//redonner l'accès au client
+		}
+		vendre(m->idSemMasterClient);
+
+		//break;
+	//}
+	close(tcm);
+	close(tmc);
+}
 	
 	
 	
@@ -138,35 +153,58 @@ int main(int argc, char * argv[])
         usage(argv[0], NULL);
 
     // - création des sémaphores
-	int key = getKey("master_client.h", PROJ_ID);
-    int semMasterClient = semCreator(key);
+	int keymc = getKey("master_client.h", PROJ_ID);
+    int semMasterClient = semCreator(keymc);
     semSetVal(semMasterClient,0); // Pour que le master puisse attendre le l'input du client
+    
+    int  k =ftok("master_worker.h", 2);
+    int semMasterWorker = semget(k,1,IPC_CREAT | 0641);
+	semctl(semMasterWorker, 0, SETVAL, 0);// Pour que le worker puisse attendrel'input du master
+    
+    
     // - création des tubes nommés
     mymkfifo("tubeClientMaster",0600); //tube client vers master
     mymkfifo("tubeMasterClient",0600); //tube master vers client
-    
-    
-    // - création du premier worker
-    /*int son = fork();
-    if(son == 0){
-		execv("worker",NULL);
-	}
-	*/
 	
 	masterStats ms = malloc(sizeof(struct mS));
 	ms->highestPrime = 2;
 	ms->highestAskedNumber = 1; 
 	ms->howManyCalculatedPrime = 1; //ou 1 ?
 	ms->idSemMasterClient = semMasterClient;
+	ms->idSemMasterWorker = semMasterWorker;
+	
+	// - création des tubes anonymes
+	
+	int pipeMasterWorker[2]; // master vers worker
+	pipe(pipeMasterWorker);
+	
+	int pipeWorkerMaster[2]; // worker vers master
+	pipe(pipeWorkerMaster);
 	
 	
-    // boucle infinie
+	// - création du premier worker
+	createFirstWorker(pipeMasterWorker[0],pipeWorkerMaster[1]);
+	// - fermeture des pipes 
+	close(pipeMasterWorker[0]); //partie lecture
+	close(pipeWorkerMaster[1]); //partie ecriture
+	
+	ms->pipeMasterWorker =pipeMasterWorker[1];
+	ms->pipeWorkerMaster =pipeWorkerMaster[0];
+	
+    // - boucle infinie
     loop(ms);
-
+    
+    
     // destruction des tubes nommés, des sémaphores, ...
+    sleep(1);
 	unlink("tubeClientMaster");
 	unlink("tubeMasterClient");
+	
 	semDestruct(semMasterClient);
+	semDestruct(semMasterWorker);
+	close(pipeMasterWorker[1]); //partie ecriture
+	close(pipeWorkerMaster[0]); //partie lecture
+	free(ms);
     return EXIT_SUCCESS;
 }
 

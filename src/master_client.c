@@ -58,7 +58,7 @@ int mymkfifo(const char *pathname, mode_t mode)
 /*Get the key*/
 key_t getKey(const char *pathname, int proj_id)
 {
-	int key = myftok(pathname, proj_id);
+	int key = ftok(pathname, proj_id);
 	myassert(key > -1, "ERROR : Issue with the creation of the key");
 	
 	return key;

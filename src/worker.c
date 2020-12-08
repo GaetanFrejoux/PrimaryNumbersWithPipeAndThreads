@@ -16,11 +16,7 @@
 
 // on peut ici définir une structure stockant tout ce dont le worker
 // a besoin : le nombre premier dont il a la charge, ...
-struct wS{
-	int primeNumber;
-};
 
- typedef struct ws* workerStats;
 
 /************************************************************************
  * Usage et analyse des arguments passés en ligne de commande
@@ -37,23 +33,51 @@ static void usage(const char *exeName, const char *message)
     exit(EXIT_FAILURE);
 }
 
-static void parseArgs(int argc, char * argv[] /*, structure à remplir*/)
+static void parseArgs(int argc, char * argv[] , workerStats ws)
 {
     if (argc != 4)
         usage(argv[0], "Nombre d'arguments incorrect");
 
     // remplir la structure
+    ws->primeNumber = strtol(argv[1],NULL,10);
+    ws->prevWorker = strtol(argv[2],NULL,10);
+    ws->master = strtol(argv[3],NULL,10);
 }
 
 /************************************************************************
  * Boucle principale de traitement
  ************************************************************************/
 
-void loop(/* paramètres */)
+void loop(workerStats ws)
 {
-	while(1){
+	//while(1){
 		
+	//}
+	
+	
+	struct sembuf down ={0,-1,0};
+	struct sembuf up = {0,1,0};
+
+	semop((ws->sem), &down, 1);
+
+	int valeur;
+	int ans;
+	read(ws->prevWorker,&valeur,sizeof(int));
+	if(valeur ==(ws->primeNumber)){
+		ans = 1;
 	}
+	else if(valeur%(ws->primeNumber)==0){
+		ans = 0; //faux
+	}
+	else{
+		ans = 1; //vrai
+	}
+	
+	write(ws->master,&ans,sizeof(int));
+	semop((ws->sem), &up, 1);
+
+	
+	
     // boucle infinie :
     //    attendre l'arrivée d'un nombre à tester
     //    si ordre d'arrêt
@@ -72,15 +96,29 @@ void loop(/* paramètres */)
 
 int main(int argc, char * argv[])
 {
-    parseArgs(argc, argv /*, structure à remplir*/);
+	workerStats ws = malloc( sizeof( struct wS ) );
+	
+	
+	
+	//Provisoire pour test
+	int key = ftok("master_worker.h", 2);
+	ws->sem = semget(key,1,0);
+	
+	
+	
+	
+    parseArgs(argc, argv ,ws);
     
     // Si on est créé c'est qu'on est un nombre premier
+    
     // Envoyer au master un message positif pour dire
     // que le nombre testé est bien premier
 
-    loop(/* paramètres */);
+    loop(ws);
 
     // libérer les ressources : fermeture des files descriptors par exemple
-
+    close(ws->master);
+	close(ws->prevWorker);
+	free(ws);
     return EXIT_SUCCESS;
 }
