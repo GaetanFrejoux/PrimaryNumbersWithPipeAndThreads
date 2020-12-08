@@ -16,9 +16,11 @@
 
 // on peut ici définir une structure stockant tout ce dont le worker
 // a besoin : le nombre premier dont il a la charge, ...
-typedef struct{
+struct wS{
 	int primeNumber;
-} *workerStats;
+};
+
+ typedef struct ws* workerStats;
 
 /************************************************************************
  * Usage et analyse des arguments passés en ligne de commande

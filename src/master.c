@@ -53,7 +53,7 @@ void loop(masterStats m)
     int tmc = myopen("tubeMasterClient",0666); //ouverture en mode écriture
     int valeur;
     while(1){
-			semOperation((m->idSemMasterClient),down,1);
+			prendre((m->idSemMasterClient));
 			read(tcm,&valeur,sizeof(int));
 			if(valeur == ORDER_STOP)
 			{
@@ -79,7 +79,7 @@ void loop(masterStats m)
 				write(tmc,&(m->howManyCalculatedPrime), sizeof(int));
 				//TODO
 				//redonner l'accès au client
-				semOperation((m->idSemMasterClient),up,1);
+                vendre((m->idSemMasterClient));
 				sleep(1);
 
 			}
@@ -156,7 +156,7 @@ int main(int argc, char * argv[])
 	masterStats ms = malloc(sizeof(struct mS));
 	ms->highestPrime = 2;
 	ms->highestAskedNumber = 1; 
-	ms->howManyCalculatedPrime = 0; //ou 1 ?
+	ms->howManyCalculatedPrime = 1; //ou 1 ?
 	ms->idSemMasterClient = semMasterClient;
 	
 	

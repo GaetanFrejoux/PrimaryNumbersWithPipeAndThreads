@@ -101,18 +101,18 @@ int main(int argc, char * argv[])
     if(order == ORDER_COMPUTE_PRIME){
 		write(tcm,&order,sizeof(int));
 		write(tcm,&number,sizeof(int));
-		prendre(semMasterClient); // Donne l'accès au master
-		sleep(1);
+		vendre(semMasterClient); // Donne l'accès au master
 	}
 	else if(order == ORDER_COMPUTE_PRIME_LOCAL){
 		//TODO 
 	}
 	else{
 		write(tcm,&order,sizeof(int));		
-		prendre(semMasterClient); // Donne l'accès au master
+		vendre(semMasterClient); // Donne l'accès au master
 
 	}
-	vendre(semMasterClient);
+	sleep(1); // Permet d'être sur que ce n'est pas le client qui reprend sur le sem.
+	prendre(semMasterClient);
 	int valeur;
 	read(tmc,&valeur,sizeof(int));
 	
