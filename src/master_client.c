@@ -8,7 +8,6 @@
 #include <stdio.h>
 
 #include "myassert.h"
-#include "utils.h"
 
 #include "master_client.h"
 
