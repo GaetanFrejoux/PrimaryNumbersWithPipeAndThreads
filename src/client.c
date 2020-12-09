@@ -90,32 +90,49 @@ int main(int argc, char * argv[])
     printf("%d\n", order); // pour éviter le warning
 	
     int key = getKey("master_client.h", PROJ_ID);// Créé la clé
-	int semMasterClient = semGet(key); // recupere le semaphore
+	int semClient = semGet(key); // recupere le semaphore
 	
 	int tcm = open("tubeClientMaster",O_WRONLY); //ouverture en mode écriture
     int tmc = open("tubeMasterClient",O_RDONLY); //ouverture en mode lecture
     
-    
+    int resultat; 
     if(order == ORDER_COMPUTE_PRIME){
+		
+		prendre(semClient);
+		
 		write(tcm,&order,sizeof(int));
 		write(tcm,&number,sizeof(int));
 		
-		vendre(semMasterClient); // Donne l'accès au master
+		read(tmc,&resultat,sizeof(int));
+		
+		if(resultat==1)
+		{
+			printf("%d is a prime number\n",number);
+		}
+		else
+		{
+			printf("%d is not a prime number\n",number);
+		}
+		
+		vendre(semClient);
 	}
 	else if(order == ORDER_COMPUTE_PRIME_LOCAL){
 		//TODO 
+		printf("Je ne sais pas faire ça\n");
 	}
 	else{
+		
+		prendre(semClient);
+		
 		write(tcm,&order,sizeof(int));	
-		vendre(semMasterClient); // Donne l'accès au master
+		read(tmc,&resultat,sizeof(int));
+		
+		printf("The answer is : %d\n",resultat);
+
+		vendre(semClient);
 
 	}
-	 // Permet d'être sur que ce n'est pas le client qui reprend sur le sem.
-	prendre(semMasterClient);
-	int valeur;
-	read(tmc,&valeur,sizeof(int));
 	
-	printf("resultat : %d\n",valeur);
     // order peut valoir 5 valeurs (cf. master_client.h) :
     //      - ORDER_COMPUTE_PRIME_LOCAL
     //      - ORDER_STOP

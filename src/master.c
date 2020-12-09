@@ -23,12 +23,8 @@ struct mS{
 	int highestPrime;
 	int highestAskedNumber;
 	int howManyCalculatedPrime;
-	
-	//Sem
-	int idSemMasterClient;
-	int idSemMasterWorker;
 
-	//Pipe
+	//Pipes
 	int pipeMasterWorker;
 	int pipeWorkerMaster;
 };
@@ -54,63 +50,105 @@ static void usage(const char *exeName, const char *message)
  ************************************************************************/
 void loop(masterStats m)
 {
+	
 	int tcm = myopen("tubeClientMaster",O_RDONLY); //ouverture en mode lecture
     int tmc = myopen("tubeMasterClient",O_WRONLY); //ouverture en mode écriture
-    int valeur;
-    //while(1){
+    
+    
+    int order=-10; // Stocke l'ordre du client
+    int inputNumber; // Stocke la valeur demandé par le client
+    int ans; // Stocke la réponse des workers
+
+    while(true){ //Boucle infinie
 		
-		prendre((m->idSemMasterClient));
-		read(tcm,&valeur,sizeof(int));
-		if(valeur == ORDER_STOP)
+		read(tcm,&order,sizeof(int)); // récupère l'ordre
+		
+		if(order == ORDER_STOP)
 		{
-			//TODO
+			write((m->pipeMasterWorker),&order,sizeof(int)); // envoie 0 au worker pour qu'il s'arrete;
+			wait(NULL);
+			break; //Sortie de la boucle while
 		}
 		
-		if(valeur == ORDER_COMPUTE_PRIME)
+		if(order == ORDER_COMPUTE_PRIME)
 		{
-			//TODO
-			int v;
-			read(tcm,&v,sizeof(int));
-			if(v>(m->highestAskedNumber)){
-				m->highestAskedNumber = v;
+			
+			read(tcm,&inputNumber,sizeof(int));// récupère la valeur
+			
+			//4 cas :
+			
+			if(inputNumber < m->highestPrime){
+				
+				write((m->pipeMasterWorker),&inputNumber,sizeof(int));//le nombre
+				write((m->pipeMasterWorker),&inputNumber,sizeof(int));//le nombre
+				read(m->pipeWorkerMaster,&ans,sizeof(int));
+				
+
 			}
-			write((m->pipeMasterWorker),&v,sizeof(int));
+			else if(inputNumber == m->highestPrime ){
+				
+				ans = 1; //est un nb premier
+
+			}
 			
-			//Temporaire vend pour le worker
-			struct sembuf up ={0,1,0};
-			struct sembuf down ={0,-1,0};
+			else if((inputNumber > m->highestPrime) && (inputNumber <= m->highestAskedNumber )){
+				
+				ans = 0; //n'est un nb premier
 
-			semop((m->idSemMasterWorker), &up, 1);
-			int ans;
-			sleep(1);
-			semop((m->idSemMasterWorker), &down, 1);
-
-			read(m->pipeWorkerMaster,&ans,sizeof(int));
-			write(tmc,&ans,sizeof(int));
+			}
+			else{
+				int inf = (m->highestAskedNumber)+1;
+				int sup = inputNumber;
+				
+				for(int i = inf ; i < sup ; i++){
+					
+					write((m->pipeMasterWorker),&i,sizeof(int));
+					read(m->pipeWorkerMaster,&ans,sizeof(int));
+					read(m->pipeWorkerMaster,&ans,sizeof(int));
+					if( ans > (m->highestPrime) ){
+						m->highestPrime =ans;
+						m->howManyCalculatedPrime++;
+					}
+				}
+				
+				write((m->pipeMasterWorker),&inputNumber,sizeof(int));
+				read(m->pipeWorkerMaster,&ans,sizeof(int));
+				
+				m->highestAskedNumber = inputNumber; //la valeur la plus élévé est maintenant égal à l'input
+				
+				int tmp;
+				read(m->pipeWorkerMaster,&tmp,sizeof(int)); // le plus grand nombre premier calculé.
+				
+				if( tmp > (m->highestPrime)){
+					m->highestPrime = tmp;
+					m->howManyCalculatedPrime++;
+				}
+			}
+			
+			write(tmc,&ans,sizeof(int)); // envoie la réponse au client 
+			
 		}
 		
-		if(valeur == ORDER_HOW_MANY_PRIME)
+		
+		
+		if(order == ORDER_HOW_MANY_PRIME)
 		{
-			write(tmc,&(m->howManyCalculatedPrime), sizeof(int));
-			//TODO
-			//redonner l'accès au client
+			
+			write(tmc,&(m->howManyCalculatedPrime), sizeof(int)); // écrit la valeur dans le tube
 
 		}
 		
-		if(valeur == ORDER_HIGHEST_PRIME)
+		if(order == ORDER_HIGHEST_PRIME)
 		{
-			
-			int highestPrime = m->highestPrime;
-
-			write(tmc,&highestPrime, sizeof(int));
-			//TODO
-			//redonner l'accès au client
+		
+			write(tmc,&(m->highestPrime), sizeof(int)); // écrit la valeur dans le tube
 		}
-		vendre(m->idSemMasterClient);
-
-		//break;
-	//}
-	close(tcm);
+		
+		order = -10; // on redonne à order une valeur qui ne correspond à rien
+	
+	}
+	// ferme les tubes physiques
+	close(tcm); 
 	close(tmc);
 }
 	
@@ -153,25 +191,17 @@ int main(int argc, char * argv[])
         usage(argv[0], NULL);
 
     // - création des sémaphores
-	int keymc = getKey("master_client.h", PROJ_ID);
-    int semMasterClient = semCreator(keymc);
-    semSetVal(semMasterClient,0); // Pour que le master puisse attendre le l'input du client
     
-    int  k =ftok("master_worker.h", 2);
-    int semMasterWorker = semget(k,1,IPC_CREAT | 0641);
-	semctl(semMasterWorker, 0, SETVAL, 0);// Pour que le worker puisse attendrel'input du master
+	int keymc = getKey("master_client.h", PROJ_ID);
+    int semClient = semCreator(keymc);
+    semSetVal(semClient,1);
     
     
     // - création des tubes nommés
+    
     mymkfifo("tubeClientMaster",0600); //tube client vers master
     mymkfifo("tubeMasterClient",0600); //tube master vers client
 	
-	masterStats ms = malloc(sizeof(struct mS));
-	ms->highestPrime = 2;
-	ms->highestAskedNumber = 1; 
-	ms->howManyCalculatedPrime = 1; //ou 1 ?
-	ms->idSemMasterClient = semMasterClient;
-	ms->idSemMasterWorker = semMasterWorker;
 	
 	// - création des tubes anonymes
 	
@@ -183,28 +213,42 @@ int main(int argc, char * argv[])
 	
 	
 	// - création du premier worker
+	
 	createFirstWorker(pipeMasterWorker[0],pipeWorkerMaster[1]);
+	
+	
 	// - fermeture des pipes 
+	
 	close(pipeMasterWorker[0]); //partie lecture
 	close(pipeWorkerMaster[1]); //partie ecriture
 	
+	
+	// - création de la structure stockant les données nécessaires pour le master
+	
+	masterStats ms = malloc(sizeof(struct mS));
+	
+	ms->highestPrime = 2;
+	ms->highestAskedNumber = 2; 
+	ms->howManyCalculatedPrime = 1;
 	ms->pipeMasterWorker =pipeMasterWorker[1];
 	ms->pipeWorkerMaster =pipeWorkerMaster[0];
+	
 	
     // - boucle infinie
     loop(ms);
     
     
     // destruction des tubes nommés, des sémaphores, ...
-    sleep(1);
 	unlink("tubeClientMaster");
 	unlink("tubeMasterClient");
 	
-	semDestruct(semMasterClient);
-	semDestruct(semMasterWorker);
+	semDestruct(semClient);
+	
 	close(pipeMasterWorker[1]); //partie ecriture
 	close(pipeWorkerMaster[0]); //partie lecture
+	
 	free(ms);
+	
     return EXIT_SUCCESS;
 }
 

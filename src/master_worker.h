@@ -13,8 +13,9 @@
 struct wS{
 	int primeNumber; // sa valeur premiere
 	int prevWorker; // le tube vers le  worker precedant (read)
+	int nextWorker; // le tube vers le  worker precedant (read)
+
 	int master; // le tube vers le master (write)
-	int sem; //semaphore pour que le worker attendent le master
 };
 
 typedef struct wS* workerStats;

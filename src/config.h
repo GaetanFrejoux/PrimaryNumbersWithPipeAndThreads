@@ -13,13 +13,4 @@
 #endif
 
 
-
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/ipc.h>
-#include <sys/sem.h>
-#include <pthread.h>
-#include <fcntl.h>
-
 #endif

@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
+#include <sys/wait.h>
 #include <pthread.h>
 #include <fcntl.h>
 

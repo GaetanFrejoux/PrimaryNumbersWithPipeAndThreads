@@ -50,31 +50,61 @@ static void parseArgs(int argc, char * argv[] , workerStats ws)
 
 void loop(workerStats ws)
 {
-	//while(1){
-		
-	//}
-	
-	
-	struct sembuf down ={0,-1,0};
-	struct sembuf up = {0,1,0};
-
-	semop((ws->sem), &down, 1);
-
 	int valeur;
 	int ans;
-	read(ws->prevWorker,&valeur,sizeof(int));
-	if(valeur ==(ws->primeNumber)){
-		ans = 1;
+	int son = 0; // pour que le premier worker puisse créer le second
+	while(1){
+		read(ws->prevWorker,&valeur,sizeof(int));
+		if(valeur ==-1 ){
+			//TODO : 
+			// envoie le signal au autres worker
+			wait(NULL);
+			break;
+		}
+		if(valeur ==(ws->primeNumber)){
+			ans = 1; // est prime
+			write(ws->master,&ans,sizeof(int));
+			write(ws->master,&(ws->primeNumber),sizeof(int));
+
+
+		}
+		else if(valeur%(ws->primeNumber)==0){
+			ans = 0; //faux
+			write(ws->master,&ans,sizeof(int));
+			write(ws->master,&(ws->primeNumber),sizeof(int));
+
+		}
+		else{
+			//TODO Creer le fils s'il n'est pas créé
+			
+			if(son == 0){ // Si il n'a pas déjà créé un fils
+				
+				int fd[2]; 
+				pipe(fd); // creation du pipe entre le worker et son fils 
+				
+				son = fork(); //créer le fils
+				
+				if(son == 0){ // si c'est le fils
+					ans = 1;
+					ws->primeNumber = valeur; // il prend la valeur actelle;
+					close(fd[1]);
+					ws->prevWorker = fd[0];
+					write(ws->master,&ans,sizeof(int));
+					write(ws->master,&(ws->primeNumber),sizeof(int));				
+				}
+				else{
+					close(fd[0]);
+					ws->nextWorker = fd[1];
+				}
+			}
+			else{
+				//TODO transmetre le nombre au fils avec le tube
+				write(ws->nextWorker,&valeur,sizeof(int));
+			}
+		}
+		
 	}
-	else if(valeur%(ws->primeNumber)==0){
-		ans = 0; //faux
-	}
-	else{
-		ans = 1; //vrai
-	}
-	
-	write(ws->master,&ans,sizeof(int));
-	semop((ws->sem), &up, 1);
+
 
 	
 	
@@ -97,16 +127,7 @@ void loop(workerStats ws)
 int main(int argc, char * argv[])
 {
 	workerStats ws = malloc( sizeof( struct wS ) );
-	
-	
-	
-	//Provisoire pour test
-	int key = ftok("master_worker.h", 2);
-	ws->sem = semget(key,1,0);
-	
-	
-	
-	
+
     parseArgs(argc, argv ,ws);
     
     // Si on est créé c'est qu'on est un nombre premier
