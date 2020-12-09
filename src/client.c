@@ -7,7 +7,6 @@
 #include <stdbool.h>
 #include <string.h>
 
-
 #include "myassert.h"
 
 #include "master_client.h"
@@ -76,70 +75,53 @@ static int parseArgs(int argc, char * argv[], int *number)
     return order;
 }
 
-
 /************************************************************************
  * Fonction principale
  ************************************************************************/
 
 int main(int argc, char * argv[])
-{
+{	
+    //INITIALISATION DES VARIABLES
+    int number = 0, order = parseArgs(argc, argv, &number);
 	
-	
-    int number = 0;
-    int order = parseArgs(argc, argv, &number);
-    printf("%d\n", order); // pour éviter le warning
-	
+    //INITIALISATION DU SÉMAPHORE CRÉÉ PAR LE MASTER
     int key = getKey("master_client.h", PROJ_ID);// Créé la clé
 	int semClient = semGet(key); // recupere le semaphore
 	
-	int tcm = open("tubeClientMaster",O_WRONLY); //ouverture en mode écriture
-    int tmc = open("tubeMasterClient",O_RDONLY); //ouverture en mode lecture
-    
-    int resultat; 
-    if(order == ORDER_COMPUTE_PRIME){
-		
-		prendre(semClient);
-		
-		write(tcm,&order,sizeof(int));
-		write(tcm,&number,sizeof(int));
-		
-		read(tmc,&resultat,sizeof(int));
-		
-		if(resultat==1)
-		{
-			printf("%d is a prime number\n",number);
-		}
-		else
-		{
-			printf("%d is not a prime number\n",number);
-		}
-		
-		vendre(semClient);
+    //OUVERTURE DES TUBES VERS LE MASTER
+	int tcm = myopen("tubeClientMaster",O_WRONLY); //ouverture en mode écriture
+    int tmc = myopen("tubeMasterClient",O_RDONLY); //ouverture en mode lecture
+
+    //SI LE CLIENT DEMANDE SI UN NOMBRE EST PREMIER
+    if (order == ORDER_COMPUTE_PRIME){	
+        computePrimeClient(semClient, tcm, tmc, order, number);//Définie dans le .h
 	}
-	else if(order == ORDER_COMPUTE_PRIME_LOCAL){
+
+    //SINON S'IL DEMANDE SI UN NOMBRE EST PREMIER EN LOCAL
+	else if (order == ORDER_COMPUTE_PRIME_LOCAL){
 		//TODO 
-		printf("Je ne sais pas faire ça\n");
+		printf("\nJe ne sais pas encore faire ça...\n");
 	}
-	else{
-		
-		prendre(semClient);
-		
-		write(tcm,&order,sizeof(int));	
-		read(tmc,&resultat,sizeof(int));
-		
-		printf("The answer is : %d\n",resultat);
 
-		vendre(semClient);
-
+    //SINON S'IL DEMANDE COMBIEN DE NOMBRES PREMIERS ONT ÉTÉ TROUVÉS
+	else if (order == ORDER_HOW_MANY_PRIME) {
+        oneOrderRequestClient(semClient, tcm, tmc, order,
+        "Master : There's %d workers created !\n");
 	}
+
+    //SINON S'IL DEMANDE LE PLUS GRAND NOMBRE PREMIER TROUVÉ
+    else if (order == ORDER_HIGHEST_PRIME) {
+        oneOrderRequestClient(semClient, tcm, tmc, order,
+        "Master : The highest found prime is %d.\n");
+    }
+
+    //SINON, IL NE RESTE EN THÉORIE PLUS QUE LE CAS DU STOP
+    else {
+        oneOrderRequestClient(semClient, tcm, tmc, order,
+        "Acknowledgment of receipt received : The Master is terminated !\n");
+    }
+    
 	
-    // order peut valoir 5 valeurs (cf. master_client.h) :
-    //      - ORDER_COMPUTE_PRIME_LOCAL
-    //      - ORDER_STOP
-    //      - ORDER_COMPUTE_PRIME
-    //      - ORDER_HOW_MANY_PRIME
-    //      - ORDER_HIGHEST_PRIME
-    //
     // si c'est ORDER_COMPUTE_PRIME_LOCAL
     //    alors c'est un code complètement à part multi-thread
     // sinon
@@ -160,6 +142,7 @@ int main(int argc, char * argv[])
     //
     // N'hésitez pas à faire des fonctions annexes ; si la fonction main
     // ne dépassait pas une trentaine de lignes, ce serait bien.
-    
+    printf("\nHappy Customer, see you later !\n\n");
+
     return EXIT_SUCCESS;
 }

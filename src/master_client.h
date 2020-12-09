@@ -10,6 +10,7 @@
 
 #include "utils.h"
 
+
 /*** === CONSTANTES === ***/
 
 // ordres possibles pour le master
@@ -20,14 +21,56 @@
 #define ORDER_HIGHEST_PRIME       3
 #define ORDER_COMPUTE_PRIME_LOCAL 4   // ne concerne pas le master
 
-// bref n'hésitez à mettre nombre de fonctions avec des noms explicites
-// pour masquer l'implémentation
-
-
 /*Identifiant pour le deuxième paramètre de ftok*/
 #define PROJ_ID 1
 
 
+/*** === STRUCTURES === ***/
+
+struct mS{
+	
+	//Stats
+	int highestPrime;
+	int highestAskedNumber;
+	int howManyCalculatedPrime;
+
+	//Pipes
+	int pipeMasterWorker;
+	int pipeWorkerMaster;
+};
+
+
 /*** === FONCTIONS === ***/
+
+// === ORDRES ===
+
+//CLIENT
+
+/*Demande au Master si un nombre est premier ou non*/
+void computePrimeClient(int semId, int w, int r, int order, int request);
+
+/*Gère les requêtes à un seul ordre côté Client*/
+void oneOrderRequestClient(int semId, int w, int r, int order, char *answer);
+
+//MASTER
+
+/*Création et initialisation de la structure*/
+struct mS *initMasterStats(int highest, int highestAsked, int howmany, int w, int r);
+
+/**/
+
+
+// === SÉMAPHORES ===
+
+/*Création d'un sémaphore et initialisation*/
+int semCreation(int key, int initVal);
+
+// === TUBES ===
+
+/*Création des tubes nommés*/
+void linkMasterClient(char *tubeCM, char *tubeMC);
+
+/*Fermeture des pipes*/
+void closePipe(int r, int w);
 
 #endif

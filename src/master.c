@@ -11,23 +11,25 @@
 #include "master_client.h"
 #include "master_worker.h"
 
+#define DEFAULT_ORDER -10;
+
 
 /************************************************************************
  * Données persistantes d'un master
  ************************************************************************/
 // on peut ici définir une structure stockant tout ce dont le master
 // a besoin
-struct mS{
+// struct mS{
 	
-	//Stats
-	int highestPrime;
-	int highestAskedNumber;
-	int howManyCalculatedPrime;
+// 	//Stats
+// 	int highestPrime;
+// 	int highestAskedNumber;
+// 	int howManyCalculatedPrime;
 
-	//Pipes
-	int pipeMasterWorker;
-	int pipeWorkerMaster;
-};
+// 	//Pipes
+// 	int pipeMasterWorker;
+// 	int pipeWorkerMaster;
+// };
 
 typedef struct mS* masterStats;
 
@@ -50,135 +52,119 @@ static void usage(const char *exeName, const char *message)
  ************************************************************************/
 void loop(masterStats m)
 {
-	
+	//OUVERTURE DES TUBES AVEC LE CLIENT
+	printf("\n=== BEGIN ======================================\n");
+	printf("\nI'm waiting for a Customer...\n");
 	int tcm = myopen("tubeClientMaster",O_RDONLY); //ouverture en mode lecture
+	printf("\nI received a Customer, Hi !\n");
     int tmc = myopen("tubeMasterClient",O_WRONLY); //ouverture en mode écriture
     
-    
-    int order=-10; // Stocke l'ordre du client
+    int order = DEFAULT_ORDER; // Stocke l'ordre du client
     int inputNumber; // Stocke la valeur demandé par le client
     int ans; // Stocke la réponse des workers
 
     while(true){ //Boucle infinie
 		
-		read(tcm,&order,sizeof(int)); // récupère l'ordre
+		myread(tcm, &order, sizeof(int)); // récupère l'ordre
 		
 		if(order == ORDER_STOP)
 		{
-			write((m->pipeMasterWorker),&order,sizeof(int)); // envoie 0 au worker pour qu'il s'arrete;
+			printf("\n\n=== STOP =======================================\n");
+			printf("\nWell, I'll stop my workers\n");
+			mywrite((m->pipeMasterWorker), &order, sizeof(int)); // envoie 0 au worker pour qu'il s'arrete;
 			wait(NULL);
+			printf("\nI finished, Bye !\n");
+			printf("\n=== END PROGRAM ================================\n");
+			mywrite(tmc, &order, sizeof(int));//test renvoie -1
 			break; //Sortie de la boucle while
 		}
 		
 		if(order == ORDER_COMPUTE_PRIME)
 		{
+			myread(tcm, &inputNumber, sizeof(int));// récupère la valeur
+			printf("\n\n=== COMPUTE %d ==================================\n", inputNumber);
+			printf("\nOk, I'll search if %d is a prime\n", inputNumber);
 			
-			read(tcm,&inputNumber,sizeof(int));// récupère la valeur
+			//4 CAS :
 			
-			//4 cas :
-			
-			if(inputNumber < m->highestPrime){
-				
-				write((m->pipeMasterWorker),&inputNumber,sizeof(int));//le nombre
-				write((m->pipeMasterWorker),&inputNumber,sizeof(int));//le nombre
-				read(m->pipeWorkerMaster,&ans,sizeof(int));
-				
-
+			if(inputNumber < m->highestPrime)
+			{
+				int tmp;
+				mywrite((m->pipeMasterWorker), &inputNumber, sizeof(int)); //le nombre
+				myread(m->pipeWorkerMaster, &ans, sizeof(int));
+				myread(m->pipeWorkerMaster, &tmp, sizeof(int));
 			}
-			else if(inputNumber == m->highestPrime ){
-				
+
+			else if(inputNumber == m->highestPrime)
+			{
 				ans = 1; //est un nb premier
-
 			}
 			
-			else if((inputNumber > m->highestPrime) && (inputNumber <= m->highestAskedNumber )){
-				
-				ans = 0; //n'est un nb premier
-
+			else if((inputNumber > m->highestPrime) && (inputNumber <= m->highestAskedNumber))
+			{
+				ans = 0; //n'est pas un nb premier
 			}
-			else{
-				int inf = (m->highestAskedNumber)+1;
+
+			else
+			{
+				int inf = (m->highestAskedNumber);
 				int sup = inputNumber;
 				
-				for(int i = inf ; i < sup ; i++){
-					
-					write((m->pipeMasterWorker),&i,sizeof(int));
-					read(m->pipeWorkerMaster,&ans,sizeof(int));
-					read(m->pipeWorkerMaster,&ans,sizeof(int));
-					if( ans > (m->highestPrime) ){
-						m->highestPrime =ans;
+				for(int i = inf ; i < sup ; i++)
+				{
+					mywrite((m->pipeMasterWorker), &i, sizeof(int));
+					myread(m->pipeWorkerMaster, &ans, sizeof(int));
+					myread(m->pipeWorkerMaster, &ans, sizeof(int));
+
+					if( ans > (m->highestPrime) )
+					{
+						m->highestPrime = ans;
+						printf("\n***** WORKER %d was created *****\n", m->highestPrime);
 						m->howManyCalculatedPrime++;
 					}
 				}
+
+				printf("\nEnough Workers were created\n");
 				
-				write((m->pipeMasterWorker),&inputNumber,sizeof(int));
-				read(m->pipeWorkerMaster,&ans,sizeof(int));
+				mywrite((m->pipeMasterWorker), &inputNumber,sizeof(int));
+				myread(m->pipeWorkerMaster, &ans,sizeof(int));
 				
-				m->highestAskedNumber = inputNumber; //la valeur la plus élévé est maintenant égal à l'input
+				m->highestAskedNumber = inputNumber; //la valeur la plus élévée est maintenant égale à l'input
 				
 				int tmp;
-				read(m->pipeWorkerMaster,&tmp,sizeof(int)); // le plus grand nombre premier calculé.
+				myread(m->pipeWorkerMaster, &tmp, sizeof(int)); // le plus grand nombre premier calculé.
 				
 				if( tmp > (m->highestPrime)){
 					m->highestPrime = tmp;
 					m->howManyCalculatedPrime++;
 				}
 			}
-			
-			write(tmc,&ans,sizeof(int)); // envoie la réponse au client 
-			
+			printf("\n=== END COMPUTE %d ==============================\n", inputNumber);
+			mywrite(tmc, &ans, sizeof(int)); //Envoi de la réponse au client 
 		}
-		
-		
 		
 		if(order == ORDER_HOW_MANY_PRIME)
 		{
-			
-			write(tmc,&(m->howManyCalculatedPrime), sizeof(int)); // écrit la valeur dans le tube
-
+			mywrite(tmc, &(m->howManyCalculatedPrime), sizeof(int)); // écrit la valeur dans le tube
+			printf("\n\n=== HOWMANY =====================================\n");
+			printf("\n%d Workers have been created\n", m->howManyCalculatedPrime);
+			printf("\n=== END HOWMANY =================================\n");
 		}
 		
 		if(order == ORDER_HIGHEST_PRIME)
 		{
-		
-			write(tmc,&(m->highestPrime), sizeof(int)); // écrit la valeur dans le tube
+			mywrite(tmc,&(m->highestPrime), sizeof(int)); // écrit la valeur dans le tube
+			printf("\n\n=== HIGHEST ====================================\n");
+			printf("\nThe highest prime I discovered is %d\n", m->highestPrime);
+			printf("\n=== END HIGHEST ================================\n");
 		}
 		
-		order = -10; // on redonne à order une valeur qui ne correspond à rien
-	
+		order = DEFAULT_ORDER; // on redonne à order une valeur qui ne correspond à rien
 	}
-	// ferme les tubes physiques
-	close(tcm); 
-	close(tmc);
+
+	//FERMETURE DES TUBES NOMMÉS
+	closePipe(tmc, tcm);
 }
-	
-	
-	
-    // boucle infinie :
-    // - ouverture des tubes (cf. rq client.c)
-    // - attente d'un ordre du client (via le tube nommé)
-    // - si ORDER_STOP
-    //       . envoyer ordre de fin au premier worker et attendre sa fin
-    //       . envoyer un accusé de réception au client
-    // - si ORDER_COMPUTE_PRIME
-    //       . récupérer le nombre N à tester provenant du client
-    //       . construire le pipeline jusqu'au nombre N-1 (si non encore fait) :
-    //             il faut connaître le plus nombre (M) déjà enovoyé aux workers
-    //             on leur envoie tous les nombres entre M+1 et N-1
-    //             note : chaque envoie déclenche une réponse des workers
-    //       . envoyer N dans le pipeline
-    //       . récupérer la réponse
-    //       . la transmettre au client
-    // - si ORDER_HOW_MANY_PRIME
-    //       . transmettre la réponse au client
-    // - si ORDER_HIGHEST_PRIME
-    //       . transmettre la réponse au client
-    // - fermer les tubes nommés
-    // - attendre ordre du client avant de continuer (sémaphore : précédence)
-    // - revenir en début de boucle
-    //
-    // il est important d'ouvrir et fermer les tubes nommés à chaque itération
-    // voyez-vous pourquoi ?
 
 
 /************************************************************************
@@ -190,63 +176,49 @@ int main(int argc, char * argv[])
     if (argc != 1)
         usage(argv[0], NULL);
 
-    // - création des sémaphores
-    
+    //CRÉATION DES SÉMAPHORES
 	int keymc = getKey("master_client.h", PROJ_ID);
-    int semClient = semCreator(keymc);
-    semSetVal(semClient,1);
+	int semClient = semCreation(keymc, 1);
     
-    
-    // - création des tubes nommés
-    
-    mymkfifo("tubeClientMaster",0600); //tube client vers master
-    mymkfifo("tubeMasterClient",0600); //tube master vers client
+    //CRÉATION DES TUBES NOMMÉS
+	linkMasterClient("tubeClientMaster", "tubeMasterClient");
 	
-	
-	// - création des tubes anonymes
-	
+	//CRÉATION DES TUBES ANONYMES
 	int pipeMasterWorker[2]; // master vers worker
 	pipe(pipeMasterWorker);
 	
 	int pipeWorkerMaster[2]; // worker vers master
 	pipe(pipeWorkerMaster);
 	
-	
-	// - création du premier worker
-	
+	//CRÉATION DU PREMIER WORKER
 	createFirstWorker(pipeMasterWorker[0],pipeWorkerMaster[1]);
 	
+	//FERMETURE DES PIPES (LECTURE DU MASTER ET ÉCRITURE DU WORKER)
+	closePipe(pipeMasterWorker[0], pipeWorkerMaster[1]);
 	
-	// - fermeture des pipes 
+	//Création de la structure stockant les données nécessaires pour le master
 	
-	close(pipeMasterWorker[0]); //partie lecture
-	close(pipeWorkerMaster[1]); //partie ecriture
+	masterStats ms = initMasterStats(2, 2, 1, pipeMasterWorker[1], pipeWorkerMaster[0]);
 	
+	// malloc(sizeof(struct mS));
 	
-	// - création de la structure stockant les données nécessaires pour le master
-	
-	masterStats ms = malloc(sizeof(struct mS));
-	
-	ms->highestPrime = 2;
-	ms->highestAskedNumber = 2; 
-	ms->howManyCalculatedPrime = 1;
-	ms->pipeMasterWorker =pipeMasterWorker[1];
-	ms->pipeWorkerMaster =pipeWorkerMaster[0];
+	// ms->highestPrime = 2;
+	// ms->highestAskedNumber = 2; 
+	// ms->howManyCalculatedPrime = 1;
+	// ms->pipeMasterWorker = pipeMasterWorker[1];
+	// ms->pipeWorkerMaster = pipeWorkerMaster[0];
 	
 	
-    // - boucle infinie
+    //BOUCLE INFINIE
     loop(ms);
     
-    
-    // destruction des tubes nommés, des sémaphores, ...
-	unlink("tubeClientMaster");
+	//ON FERME ET ON DÉTRUIT TOUT
+    unlink("tubeClientMaster");
 	unlink("tubeMasterClient");
-	
 	semDestruct(semClient);
-	
-	close(pipeMasterWorker[1]); //partie ecriture
-	close(pipeWorkerMaster[0]); //partie lecture
-	
+	// myclose(pipeMasterWorker[1]); //partie ecriture
+	// myclose(pipeWorkerMaster[0]); //partie lecture
+	closePipe(pipeWorkerMaster[0], pipeMasterWorker[1]);
 	free(ms);
 	
     return EXIT_SUCCESS;

@@ -17,8 +17,6 @@ struct wS{
 
 	int master; // le tube vers le master (write)
 };
-
-typedef struct wS* workerStats;
  
 void createFirstWorker(int pipeMasterWorker, int pipeWorkerMaster);
 char * intToString(int val);
