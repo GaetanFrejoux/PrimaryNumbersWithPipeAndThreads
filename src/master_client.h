@@ -27,8 +27,8 @@
 
 /*** === STRUCTURES === ***/
 
-struct mS{
-	
+struct mS
+{
 	//Stats
 	int highestPrime;
 	int highestAskedNumber;
@@ -39,10 +39,25 @@ struct mS{
 	int pipeWorkerMaster;
 };
 
+typedef struct
+{
+    int thValue;
+    int value;
+    bool * res;
+}ThreadData;
+
 
 /*** === FONCTIONS === ***/
 
+
+// === MASTER ===
+
+/*Création et initialisation de la structure*/
+struct mS *initMasterStats(int highest, int highestAsked, int howmany, int w, int r);
+
+
 // === ORDRES ===
+
 
 //CLIENT
 
@@ -52,18 +67,21 @@ void computePrimeClient(int semId, int w, int r, int order, int request);
 /*Gère les requêtes à un seul ordre côté Client*/
 void oneOrderRequestClient(int semId, int w, int r, int order, char *answer);
 
+/*Compute local*/
+void computeLocal(int N);
+
+
 //MASTER
 
-/*Création et initialisation de la structure*/
-struct mS *initMasterStats(int highest, int highestAsked, int howmany, int w, int r);
-
-/**/
+/*Compute Prime du Master*/
+void computePrimeMaster(int ans, int inputNumber, int r, int w, struct mS *ms);
 
 
 // === SÉMAPHORES ===
 
 /*Création d'un sémaphore et initialisation*/
 int semCreation(int key, int initVal);
+
 
 // === TUBES ===
 
@@ -72,5 +90,19 @@ void linkMasterClient(char *tubeCM, char *tubeMC);
 
 /*Fermeture des pipes*/
 void closePipe(int r, int w);
+
+
+// === THREADS CLIENT ===
+
+void mycreate(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);
+void myjoin(pthread_t thread, void **retval);
+void myexit();
+
+/*Initialisation des thread*/
+void preInitThread(int N, int nbThread, bool *tab, ThreadData *data);
+
+/*Code des threads du client*/
+void *codeThread(void *var);
+
 
 #endif

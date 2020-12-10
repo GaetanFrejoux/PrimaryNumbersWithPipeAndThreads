@@ -94,19 +94,18 @@ int main(int argc, char * argv[])
 
     //SI LE CLIENT DEMANDE SI UN NOMBRE EST PREMIER
     if (order == ORDER_COMPUTE_PRIME){	
-        computePrimeClient(semClient, tcm, tmc, order, number);//Définie dans le .h
+        computePrimeClient(semClient, tcm, tmc, order, number);         //Définie dans le .h
 	}
 
     //SINON S'IL DEMANDE SI UN NOMBRE EST PREMIER EN LOCAL
 	else if (order == ORDER_COMPUTE_PRIME_LOCAL){
-		//TODO 
-		printf("\nJe ne sais pas encore faire ça...\n");
+        computeLocal(number);                                           //Définie dans le .h
 	}
 
     //SINON S'IL DEMANDE COMBIEN DE NOMBRES PREMIERS ONT ÉTÉ TROUVÉS
 	else if (order == ORDER_HOW_MANY_PRIME) {
         oneOrderRequestClient(semClient, tcm, tmc, order,
-        "Master : There's %d workers created !\n");
+        "Master : There's %d workers created !\n");                     //Définie dans le .h
 	}
 
     //SINON S'IL DEMANDE LE PLUS GRAND NOMBRE PREMIER TROUVÉ
@@ -121,27 +120,6 @@ int main(int argc, char * argv[])
         "Acknowledgment of receipt received : The Master is terminated !\n");
     }
     
-	
-    // si c'est ORDER_COMPUTE_PRIME_LOCAL
-    //    alors c'est un code complètement à part multi-thread
-    // sinon
-    //    - entrer en section critique :
-    //           . pour empêcher que 2 clients communiquent simultanément
-    //           . le mutex est déjà créé par le master
-    //    - ouvrir les tubes nommés (ils sont déjà créés par le master)
-    //           . les ouvertures sont bloquantes, il faut s'assurer que
-    //             le master ouvre les tubes dans le même ordre
-    //    - envoyer l'ordre et les données éventuelles au master
-    //    - attendre la réponse sur le second tube
-    //    - sortir de la section critique
-    //    - libérer les ressources (fermeture des tubes, ...)
-    //    - débloquer le master grâce à un second sémaphore (cf. ci-dessous)
-    // 
-    // Une fois que le master a envoyé la réponse au client, il se bloque
-    // sur un sémaphore ; le dernier point permet donc au master de continuer
-    //
-    // N'hésitez pas à faire des fonctions annexes ; si la fonction main
-    // ne dépassait pas une trentaine de lignes, ce serait bien.
     printf("\nHappy Customer, see you later !\n\n");
 
     return EXIT_SUCCESS;

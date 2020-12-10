@@ -12,6 +12,7 @@
 #include <sys/wait.h>
 #include <pthread.h>
 #include <fcntl.h>
+#include <math.h>
 
 
 /*** === FONCTIONS === ***/
@@ -41,12 +42,5 @@ void semDestruct(int semid);
 void prendre(int semid);
 void vendre(int semid);
 void attendre(int semid);
-
-
-//THREADS
-
-int mycreate(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);
-int myjoin(pthread_t thread, void **retval);
-
 
 #endif
