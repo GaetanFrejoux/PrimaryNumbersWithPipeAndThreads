@@ -51,9 +51,16 @@ void myclose(int fd)
 int mymkfifo(const char *pathname, mode_t mode)
 {
 	int ret = mkfifo(pathname, mode);
-	myassert(ret > -1, "ERREUR : Le tube nommé n'a pas été créé");
+	myassert(ret > -1, "ERROR : Named pipe isnt created");
 	
 	return ret;
+}
+
+/*Create an anonymous pipe*/
+void mypipe(int fd[])
+{
+	int test = pipe(fd);
+	myassert(test > -1, "ERROR : Anonymous pipe isnt created");
 }
 
 

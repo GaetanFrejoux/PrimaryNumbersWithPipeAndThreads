@@ -49,7 +49,7 @@ static void parseArgs(int argc, char * argv[] , workerStats ws)
  * Fonction pour le fils
  ************************************************************************/
 
-void pizza(int valeur, int fd[], workerStats ws)
+void sonProcess(int valeur, int fd[], workerStats ws)
 {
 	int tmp = 1;
 	ws->primeNumber = valeur; //Prend la valeur actelle;
@@ -73,52 +73,52 @@ void loop(workerStats ws)
 	{
 		myread(ws->prevWorker, &valeur, sizeof(int));
 
-		if(valeur == -1 )
+		if (valeur == -1 )
 		{
-			if(son != 0)
+			if (son != 0)
 			{
 				mywrite(ws->nextWorker, &valeur, sizeof(int));
 				wait(NULL);
 			}
 			break;
 		}
-		if(valeur == (ws->primeNumber))
+
+		if (valeur == (ws->primeNumber))
 		{
 			ans = 1; //Vrai : premier
 			mywrite(ws->master,&ans,sizeof(int));
 			mywrite(ws->master,&(ws->primeNumber),sizeof(int));
 		}
 
-		else if(valeur%(ws->primeNumber) == 0)
+		else if (valeur%(ws->primeNumber) == 0)
 		{
 			ans = 0; //Faux : non premier
 			mywrite(ws->master,&ans,sizeof(int));
 			mywrite(ws->master, &(ws->primeNumber), sizeof(int));
 		}
 
-		else{
-			
-			if(son == 0) //Si il n'a pas déjà créé un fils
+		else
+		{
+			//Si il n'a pas déjà créé un fils
+			if (son == 0)
 			{				
 				int fd[2];
-				pipe(fd); //Création du pipe entre le worker et son fils
+				mypipe(fd); //Création du pipe entre le worker et son fils
 				
 				son = fork(); //Création d'un fils
-				
-				if(son == 0) //Si fils
-				{
-					pizza(valeur, fd, ws);
+
+				//Si fils
+				if (son == 0) {
+					sonProcess(valeur, fd, ws);
 				}
 
-				else
-				{
+				else {
 					myclose(fd[0]);
 					ws->nextWorker = fd[1];
 				}
 			}
 
-			else
-			{
+			else {
 				mywrite(ws->nextWorker, &valeur, sizeof(int));
 			}
 		}
@@ -134,11 +134,6 @@ int main(int argc, char * argv[])
 	workerStats ws = malloc( sizeof( struct wS ) );
 
     parseArgs(argc, argv ,ws);
-    
-    //Si on est créé c'est qu'on est un nombre premier
-    
-    /*Envoyer au Master un message positif pour dire
-	que le nombre testé est bien premier*/
 
     loop(ws);
 

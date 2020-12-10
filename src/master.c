@@ -111,10 +111,10 @@ int main(int argc, char * argv[])
 	
 	//CRÉATION DES TUBES ANONYMES
 	int pipeMasterWorker[2]; // master vers worker
-	pipe(pipeMasterWorker);
+	mypipe(pipeMasterWorker);
 	
 	int pipeWorkerMaster[2]; // worker vers master
-	pipe(pipeWorkerMaster);
+	mypipe(pipeWorkerMaster);
 	
 	//CRÉATION DU PREMIER WORKER
 	createFirstWorker(pipeMasterWorker[0],pipeWorkerMaster[1]);

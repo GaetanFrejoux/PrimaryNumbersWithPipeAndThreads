@@ -26,6 +26,7 @@ void mywrite(int fd, const void *buf, size_t count);
 void myclose(int fd);
 
 int mymkfifo(const char *pathname, mode_t mode);
+void mypipe(int fd[]);
 
 
 //SÉMAPHORES
