@@ -27,6 +27,7 @@
 
 /*** === STRUCTURES === ***/
 
+//Structure pour le master
 struct mS
 {
 	//Stats
@@ -39,6 +40,7 @@ struct mS
 	int pipeWorkerMaster;
 };
 
+//Structure pour les thread
 typedef struct
 {
     int thValue;

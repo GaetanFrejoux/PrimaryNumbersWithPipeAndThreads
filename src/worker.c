@@ -58,6 +58,7 @@ void sonProcess(int valeur, int fd[], workerStats ws)
 	ws->prevWorker = fd[0]; // Partie lecture
 	mywrite(ws->master, &tmp, sizeof(int)); // renvoie true
 	mywrite(ws->master, &(ws->primeNumber), sizeof(int)); // renvoie sa valeur
+	
 }
 
 /************************************************************************

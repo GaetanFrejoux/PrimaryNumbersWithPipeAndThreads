@@ -9,9 +9,6 @@
 
 #include "master_worker.h"
 
-// fonctions éventuelles proposées dans le .h
-
-
 
 void createFirstWorker(int pipeMasterWorker, int pipeWorkerMaster){
 	
@@ -43,6 +40,7 @@ void createFirstWorker(int pipeMasterWorker, int pipeWorkerMaster){
 	free(c1);
 	free(c2);
 }
+
 
 char * intToString(int val){
 	char * buffer = malloc(sizeof(char)*12);

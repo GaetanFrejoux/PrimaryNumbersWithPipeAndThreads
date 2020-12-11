@@ -10,6 +10,8 @@
 
 #include "utils.h"
 
+/*** === STRUCTURES === ***/
+//Structure pour les workers
 struct wS{
 	int primeNumber; // sa valeur premiere
 	int prevWorker; // le tube vers le  worker precedant (read)
@@ -17,7 +19,10 @@ struct wS{
 
 	int master; // le tube vers le master (write)
 };
- 
+
+//Permet de créer le premier worker (2)
 void createFirstWorker(int pipeMasterWorker, int pipeWorkerMaster);
+
+ //transforme un entier en string
 char * intToString(int val);
 #endif
