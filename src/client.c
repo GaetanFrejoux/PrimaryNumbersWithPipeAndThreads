@@ -67,7 +67,7 @@ static int parseArgs(int argc, char * argv[], int *number)
         usage(argv[0], TK_LOCAL " : il faut le second argument");
     if ((order == ORDER_COMPUTE_PRIME) || (order == ORDER_COMPUTE_PRIME_LOCAL))
     {
-        *number = strtol(argv[2], NULL, 10);
+        *number = (int)strtol(argv[2], NULL, 10);
         if (*number < 2)
              usage(argv[0], "le nombre doit être >= 2");
     }       
@@ -93,9 +93,11 @@ int main(int argc, char * argv[])
 	else {
 	
         //INITIALISATION DU SÉMAPHORE CRÉÉ PAR LE MASTER
-        int key = getKey("master_client.h", PROJ_ID);// Créé la clé
+        int key = getKey("master_client.h", CLIENTS_ID);// Créé la clé
         int semClient = semGet(key); // recupere le semaphore
         
+        int key2 = getKey("master_client.h", MASTER_CLIENT_ID);// Créé la clé
+        int semClientMaster = semGet(key2); // recupere le semaphore
         //OUVERTURE DES TUBES VERS LE MASTER
         int tcm = myopen("tubeClientMaster",O_WRONLY); //ouverture en mode écriture
         int tmc = myopen("tubeMasterClient",O_RDONLY); //ouverture en mode lecture
@@ -125,10 +127,10 @@ int main(int argc, char * argv[])
         else {
             printf("I didn't understand this order ..\n");
         }
+        closePipe(tcm,tmc);
+        vendre(semClientMaster); // débloque le master pour le prochain client
     }
 
-    
-    
     printf("\nHappy Customer, see you later !\n\n");
 
     return EXIT_SUCCESS;

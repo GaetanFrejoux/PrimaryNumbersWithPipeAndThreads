@@ -44,16 +44,17 @@ void loop(masterStats m)
 	//OUVERTURE DES TUBES AVEC LE CLIENT
 	printf("\n=== BEGIN ======================================\n");
 	printf("\nI'm waiting for a Customer...\n");
-	int tcm = myopen("tubeClientMaster",O_RDONLY); //ouverture en mode lecture
 	printf("\nI received a Customer, Hi !\n");
-    int tmc = myopen("tubeMasterClient",O_WRONLY); //ouverture en mode écriture
+    
     
     int order = DEFAULT_ORDER; // Stocke l'ordre du client
     int inputNumber = 0; // Stocke la valeur demandé par le client
     int ans = 0; // Stocke la réponse des workers
 
     while(true){ //Boucle infinie
-		
+		int tcm = myopen("tubeClientMaster",O_RDONLY); //ouverture en mode lecture
+		int tmc = myopen("tubeMasterClient",O_WRONLY); //ouverture en mode écriture
+
 		myread(tcm, &order, sizeof(int)); // récupère l'ordre
 		
 		if (order == ORDER_STOP) {
@@ -84,12 +85,12 @@ void loop(masterStats m)
 			printf("\nThe highest prime I discovered is %d\n", m->highestPrime);
 			printf("\n=== END HIGHEST ================================\n");
 		}
-		
 		order = DEFAULT_ORDER; //On redonne à order une valeur qui ne correspond à rien
+		closePipe(tmc, tcm);
+		prendre(m->sem); // Attends que le client se termine.
 	}
 
 	//FERMETURE DES TUBES NOMMÉS
-	closePipe(tmc, tcm);
 }
 
 
@@ -103,13 +104,16 @@ int main(int argc, char * argv[])
         usage(argv[0], NULL);
 
     //CRÉATION DES SÉMAPHORES
-	int keymc = getKey("master_client.h", PROJ_ID);
-	int semClient = semCreation(keymc, 1);
-    
+	//pour les clients entre eux
+	int keym = getKey("master_client.h", CLIENTS_ID);
+	int semClient = semCreation(keym, 1);
+
+	//Pour attendre la fin de chaque client
+	int keymc = getKey("master_client.h", MASTER_CLIENT_ID);
+	int semClientMaster = semCreation(keymc, 0);
+
     //CRÉATION DES TUBES NOMMÉS
 	linkMasterClient("tubeClientMaster", "tubeMasterClient");
-	
-	//CRÉATION DES TUBES ANONYMES
 	int pipeMasterWorker[2]; // master vers worker
 	mypipe(pipeMasterWorker);
 	
@@ -124,7 +128,7 @@ int main(int argc, char * argv[])
 	
 	//Création de la structure stockant les données nécessaires pour le master
 	
-	masterStats ms = initMasterStats(2, 2, 1, pipeMasterWorker[1], pipeWorkerMaster[0]);
+	masterStats ms = initMasterStats(2, 2, 1, pipeMasterWorker[1], pipeWorkerMaster[0],semClientMaster);
 	
     //BOUCLE INFINIE
     loop(ms);
@@ -132,7 +136,9 @@ int main(int argc, char * argv[])
 	//ON FERME ET ON DÉTRUIT TOUT
     unlink("tubeClientMaster");
 	unlink("tubeMasterClient");
+
 	semDestruct(semClient);
+	semDestruct(semClientMaster);
 	closePipe(pipeWorkerMaster[0], pipeMasterWorker[1]);
 	free(ms);
 	

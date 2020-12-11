@@ -17,7 +17,7 @@
 // === MASTER ===
 
 /*Création et initialisation de la structure*/
-struct mS *initMasterStats(int highest, int highestAsked, int howmany, int w, int r)
+struct mS *initMasterStats(int highest, int highestAsked, int howmany, int w, int r, int s)
 {
     struct mS *m = malloc(sizeof(struct mS));
 	
@@ -26,7 +26,7 @@ struct mS *initMasterStats(int highest, int highestAsked, int howmany, int w, in
 	m->howManyCalculatedPrime = howmany;
 	m->pipeMasterWorker = w;
 	m->pipeWorkerMaster = r;
-
+    m->sem = s;
     return m;
 }
 
@@ -84,7 +84,7 @@ void oneOrderRequestClient(int semId, int w, int r, int order, char *answer)
 /*Compute local*/
 void computeLocal(int N)
 {
-    int size = sqrt(N)-1;
+    int size = (int) sqrt(N)-1;
     bool tab[size];
     pthread_t tabId[size];
     ThreadData data[size];

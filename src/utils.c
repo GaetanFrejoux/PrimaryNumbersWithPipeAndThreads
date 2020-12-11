@@ -30,14 +30,14 @@ int myopen(const char *pathname, int flags)
 /*Read in a file*/
 void myread(int fd, void *buf, size_t count)
 {
-	int test = read(fd, buf, count);
+	int test = (int) read(fd, buf, count);
 	myassert(test > -1, "ERROR : No reading in the file");
 }
 
 /*Write in a file*/
 void mywrite(int fd, const void *buf, size_t count)
 {
-	int test = write(fd, buf, count);
+	int test = (int) write(fd, buf, count);
 	myassert(test > -1, "ERROR : No writing in the file");
 }
 

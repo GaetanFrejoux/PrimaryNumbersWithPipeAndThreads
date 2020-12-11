@@ -22,7 +22,9 @@
 #define ORDER_COMPUTE_PRIME_LOCAL 4   // ne concerne pas le master
 
 /*Identifiant pour le deuxième paramètre de ftok*/
-#define PROJ_ID 1
+#define CLIENTS_ID 1
+#define MASTER_CLIENT_ID 5
+
 
 
 /*** === STRUCTURES === ***/
@@ -38,6 +40,9 @@ struct mS
 	//Pipes
 	int pipeMasterWorker;
 	int pipeWorkerMaster;
+
+	//Semaphore
+	int sem;
 };
 
 //Structure pour les thread
@@ -55,7 +60,7 @@ typedef struct
 // === MASTER ===
 
 /*Création et initialisation de la structure*/
-struct mS *initMasterStats(int highest, int highestAsked, int howmany, int w, int r);
+struct mS *initMasterStats(int highest, int highestAsked, int howmany, int w, int r,int s);
 
 
 // === ORDRES ===
