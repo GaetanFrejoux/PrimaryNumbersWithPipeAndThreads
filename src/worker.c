@@ -40,9 +40,10 @@ static void parseArgs(int argc, char * argv[] , workerStats ws)
         usage(argv[0], "Nombre d'arguments incorrect");
 
     // remplir la structure
-    ws->primeNumber = strtol(argv[1],NULL,10);
-    ws->prevWorker = strtol(argv[2],NULL,10);
-    ws->master = strtol(argv[3],NULL,10);
+    ws->primeNumber = (int)strtol(argv[1],NULL,10); 
+    ws->prevWorker = (int)strtol(argv[2],NULL,10);
+	ws->nextWorker = 0;
+    ws->master = (int)strtol(argv[3],NULL,10);
 }
 
 /************************************************************************
@@ -52,11 +53,11 @@ static void parseArgs(int argc, char * argv[] , workerStats ws)
 void sonProcess(int valeur, int fd[], workerStats ws)
 {
 	int tmp = 1;
-	ws->primeNumber = valeur; //Prend la valeur actelle;
-	myclose(fd[1]);
-	ws->prevWorker = fd[0];
-	mywrite(ws->master, &tmp, sizeof(int));
-	mywrite(ws->master, &(ws->primeNumber), sizeof(int));
+	ws->primeNumber = valeur; //Prend la valeur actuelle;
+	myclose(fd[1]); //Ferme la partie écriture
+	ws->prevWorker = fd[0]; // Partie lecture
+	mywrite(ws->master, &tmp, sizeof(int)); // renvoie true
+	mywrite(ws->master, &(ws->primeNumber), sizeof(int)); // renvoie sa valeur
 }
 
 /************************************************************************
@@ -69,30 +70,30 @@ void loop(workerStats ws)
 	int ans;
 	int son = 0; //Pour que le premier Worker puisse créer le second
 
-	while(1)
+	while(true)
 	{
 		myread(ws->prevWorker, &valeur, sizeof(int));
 
 		if (valeur == -1 )
 		{
-			if (son != 0)
+			if (son != 0) // S'il a un fils
 			{
-				mywrite(ws->nextWorker, &valeur, sizeof(int));
-				wait(NULL);
+				mywrite(ws->nextWorker, &valeur, sizeof(int)); // Envoie le signal d'arrêt
+				wait(NULL); // Attend que son fils se termine
 			}
-			break;
+			break; // Quitte le while.
 		}
 
 		if (valeur == (ws->primeNumber))
 		{
-			ans = 1; //Vrai : premier
+			ans = 1; //Vrai : premier car égal à un worker
 			mywrite(ws->master,&ans,sizeof(int));
 			mywrite(ws->master,&(ws->primeNumber),sizeof(int));
 		}
 
 		else if (valeur%(ws->primeNumber) == 0)
 		{
-			ans = 0; //Faux : non premier
+			ans = 0; //Faux : non premier car divisible par le worker.
 			mywrite(ws->master,&ans,sizeof(int));
 			mywrite(ws->master, &(ws->primeNumber), sizeof(int));
 		}
@@ -131,16 +132,22 @@ void loop(workerStats ws)
 
 int main(int argc, char * argv[])
 {
-	workerStats ws = malloc( sizeof( struct wS ) );
+	workerStats ws = malloc( sizeof( struct wS ) ); // Alloc de l'espace pour la structure du Worker
 
     parseArgs(argc, argv ,ws);
 
-    loop(ws);
+    loop(ws); //  Boucle
 
     //Libérer les ressources : fermeture des files descriptors par exemple
-    myclose(ws->master);
-	myclose(ws->prevWorker);
-	free(ws);
+
+    myclose(ws->master); // Fermeture du tube ver le master
+	myclose(ws->prevWorker); // Fermeture du tube vers le précèdent
+
+	if(ws->nextWorker!=0){ // Si ce n'est pas le dernier worker, on ferme le tube vers le suivant.
+		myclose(ws->nextWorker);
+	}
+
+	free(ws); // Libère l'espace allouer pour la structure
 
     return EXIT_SUCCESS;
 }

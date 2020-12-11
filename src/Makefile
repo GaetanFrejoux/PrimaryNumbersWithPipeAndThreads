@@ -21,8 +21,8 @@ CPPFLAGS = $(INCDIR) -DHAVE_CONFIG_H
 
 # -fPIC pour que les .o générés puissent être utilisés sur diverses
 # architectures
-CFLAGS = -g -Wall -Wextra -pedantic -std=c99 -fPIC
-#CFLAGS = -O -Wall -Wextra -pedantic -std=c99 -fPIC
+CFLAGS = -g -Wall -Wextra -pedantic -Wconversion -std=c99 -fPIC
+#CFLAGS = -O -Wall -Wextra -pedantic -Wconversion -std=c99 -fPIC
 
 
 #LIBS = -ljpeg -lXaw -lm

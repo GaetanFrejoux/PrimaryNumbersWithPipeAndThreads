@@ -83,42 +83,51 @@ int main(int argc, char * argv[])
 {	
     //INITIALISATION DES VARIABLES
     int number = 0, order = parseArgs(argc, argv, &number);
-	
-    //INITIALISATION DU SÉMAPHORE CRÉÉ PAR LE MASTER
-    int key = getKey("master_client.h", PROJ_ID);// Créé la clé
-	int semClient = semGet(key); // recupere le semaphore
-	
-    //OUVERTURE DES TUBES VERS LE MASTER
-	int tcm = myopen("tubeClientMaster",O_WRONLY); //ouverture en mode écriture
-    int tmc = myopen("tubeMasterClient",O_RDONLY); //ouverture en mode lecture
 
     //SI LE CLIENT DEMANDE SI UN NOMBRE EST PREMIER
-    if (order == ORDER_COMPUTE_PRIME){	
-        computePrimeClient(semClient, tcm, tmc, order, number);         //Définie dans le .h
-	}
-
-    //SINON S'IL DEMANDE SI UN NOMBRE EST PREMIER EN LOCAL
-	else if (order == ORDER_COMPUTE_PRIME_LOCAL){
+    if (order == ORDER_COMPUTE_PRIME_LOCAL){
         computeLocal(number);                                           //Définie dans le .h
 	}
 
-    //SINON S'IL DEMANDE COMBIEN DE NOMBRES PREMIERS ONT ÉTÉ TROUVÉS
-	else if (order == ORDER_HOW_MANY_PRIME) {
-        oneOrderRequestClient(semClient, tcm, tmc, order,
-        "Master : There's %d workers created !\n");                     //Définie dans le .h
-	}
+    //SINON S'IL DEMANDE SI UN NOMBRE EST PREMIER EN LOCAL
+	else {
+	
+        //INITIALISATION DU SÉMAPHORE CRÉÉ PAR LE MASTER
+        int key = getKey("master_client.h", PROJ_ID);// Créé la clé
+        int semClient = semGet(key); // recupere le semaphore
+        
+        //OUVERTURE DES TUBES VERS LE MASTER
+        int tcm = myopen("tubeClientMaster",O_WRONLY); //ouverture en mode écriture
+        int tmc = myopen("tubeMasterClient",O_RDONLY); //ouverture en mode lecture
 
-    //SINON S'IL DEMANDE LE PLUS GRAND NOMBRE PREMIER TROUVÉ
-    else if (order == ORDER_HIGHEST_PRIME) {
-        oneOrderRequestClient(semClient, tcm, tmc, order,
-        "Master : The highest found prime is %d.\n");
+        if (order == ORDER_COMPUTE_PRIME){	
+            computePrimeClient(semClient, tcm, tmc, order, number);         //Définie dans le .h
+	    }
+        //SINON S'IL DEMANDE COMBIEN DE NOMBRES PREMIERS ONT ÉTÉ TROUVÉS
+        else if (order == ORDER_HOW_MANY_PRIME) {
+            oneOrderRequestClient(semClient, tcm, tmc, order,
+            "Master : There's %d workers created !\n");                     //Définie dans le .h
+        }
+
+        //SINON S'IL DEMANDE LE PLUS GRAND NOMBRE PREMIER TROUVÉ
+        else if (order == ORDER_HIGHEST_PRIME) {
+            oneOrderRequestClient(semClient, tcm, tmc, order,
+            "Master : The highest found prime is %d.\n");
+        }
+
+        //SINON, S'IL DEMANDE AU MASTER DE SE STOPPER
+        else if (order == ORDER_STOP) {
+            oneOrderRequestClient(semClient, tcm, tmc, order,
+            "Acknowledgment of receipt received : The Master is terminated !\n");
+        }
+
+        //SINON, IL NE CONNAIS PAS L'ORDRE DEMANDÉ
+        else {
+            printf("I didn't understand this order ..\n");
+        }
     }
 
-    //SINON, IL NE RESTE EN THÉORIE PLUS QUE LE CAS DU STOP
-    else {
-        oneOrderRequestClient(semClient, tcm, tmc, order,
-        "Acknowledgment of receipt received : The Master is terminated !\n");
-    }
+    
     
     printf("\nHappy Customer, see you later !\n\n");
 

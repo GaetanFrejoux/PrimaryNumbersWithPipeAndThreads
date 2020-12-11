@@ -60,7 +60,7 @@ void loop(masterStats m)
 			printf("\n\n=== STOP =======================================\n");
 			printf("\nWell, I'll stop my workers\n");
 			mywrite((m->pipeMasterWorker), &order, sizeof(int)); // envoie 0 au worker pour qu'il s'arrete;
-			wait(NULL);
+			wait(NULL); // Attend la fin du Worker 2 et donc de tous les Workers
 			printf("\nI finished, Bye !\n");
 			printf("\n=== END PROGRAM ================================\n\n");
 			mywrite(tmc, &order, sizeof(int));//test renvoie -1
