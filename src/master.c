@@ -132,7 +132,9 @@ int main(int argc, char * argv[])
 	
     //BOUCLE INFINIE
     loop(ms);
-    
+
+    prendre(ms->sem); // Attends que le client se termine.
+	
 	//ON FERME ET ON DÉTRUIT TOUT
     unlink("tubeClientMaster");
 	unlink("tubeMasterClient");
