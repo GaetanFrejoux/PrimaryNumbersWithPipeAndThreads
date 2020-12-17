@@ -43,8 +43,6 @@ void loop(masterStats m)
 {
 	//OUVERTURE DES TUBES AVEC LE CLIENT
 	printf("\n=== BEGIN ======================================\n");
-	printf("\nI'm waiting for a Customer...\n");
-	printf("\nI received a Customer, Hi !\n");
     
     
     int order = DEFAULT_ORDER; // Stocke l'ordre du client
@@ -52,11 +50,11 @@ void loop(masterStats m)
     int ans = 0; // Stocke la réponse des workers
 
     while(true){ //Boucle infinie
+		printf("\nI'm waiting for a Customer...\n");
 		int tcm = myopen("tubeClientMaster",O_RDONLY); //ouverture en mode lecture
 		int tmc = myopen("tubeMasterClient",O_WRONLY); //ouverture en mode écriture
-
 		myread(tcm, &order, sizeof(int)); // récupère l'ordre
-		
+		printf("\nI received a Customer, Hi !\n");		
 		if (order == ORDER_STOP) {
 			printf("\n\n=== STOP =======================================\n");
 			printf("\nWell, I'll stop my workers\n");
